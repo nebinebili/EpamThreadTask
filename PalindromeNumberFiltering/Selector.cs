@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace PalindromeNumberFiltering;
 
 /// <summary>
@@ -13,7 +15,32 @@ public static class Selector
     /// <exception cref="ArgumentNullException">Thrown when the input list 'numbers' is null.</exception>
     public static IList<int> GetPalindromes(IList<int> numbers)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(numbers);
+
+        ConcurrentBag<int> polindromeNumbers = new ConcurrentBag<int>();
+
+        using var countdown = new CountdownEvent(numbers.Count);
+
+        foreach (var number in numbers)
+        {
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    if (IsPalindrome(number))
+                    {
+                        polindromeNumbers.Add(number);
+                    }
+                }
+                finally
+                {
+                    countdown.Signal();
+                }
+            });
+        }
+
+        countdown.Wait();
+        return polindromeNumbers.ToList();
     }
 
     /// <summary>
@@ -23,7 +50,12 @@ public static class Selector
     /// <returns>True if the number is a palindrome, otherwise false.</returns>
     private static bool IsPalindrome(int number)
     {
-        throw new NotImplementedException();
+        if (number < 0)
+        {
+            return false;
+        }
+
+        return IsPositiveNumberPalindrome(number, GetLength(number) - 1, 0);
     }
 
     /// <summary>
@@ -35,7 +67,32 @@ public static class Selector
     /// <returns>True if the positive number is a palindrome, otherwise false.</returns>
     private static bool IsPositiveNumberPalindrome(int number, int left, int right)
     {
-        throw new NotImplementedException();
+        if (left <= right)
+        {
+            return true;
+        }
+
+        int leftDecimalPlace = 1;
+        for (int i = 0; i < left; i++)
+        {
+            leftDecimalPlace *= 10;
+        }
+
+        int rightDecimalPlace = 1;
+        for (int i = 0; i < right; i++)
+        {
+            rightDecimalPlace *= 10;
+        }
+
+        int leftDigit = GetDigitInDecimalPlace(number, leftDecimalPlace);
+        int rightDigit = GetDigitInDecimalPlace(number, rightDecimalPlace);
+
+        if (leftDigit != rightDigit)
+        {
+            return false;
+        }
+
+        return IsPositiveNumberPalindrome(number, left - 1, right + 1);
     }
 
     /// <summary>
@@ -46,7 +103,7 @@ public static class Selector
     /// <returns>The digit at the specified decimal place.</returns>
     private static int GetDigitInDecimalPlace(int number, int decimalPlace)
     {
-        throw new NotImplementedException();
+        return (number / decimalPlace) % 10;
     }
 
     /// <summary>
@@ -56,6 +113,28 @@ public static class Selector
     /// <returns>The number of digits in the integer.</returns>
     private static byte GetLength(int number)
     {
-        throw new NotImplementedException();
+        switch (number)
+        {
+            case var n when n < 10:
+                return 1;
+            case var n when n < 100:
+                return 2;
+            case var n when n < 1000:
+                return 3;
+            case var n when n < 10000:
+                return 4;
+            case var n when n < 100000:
+                return 5;
+            case var n when n < 1000000:
+                return 6;
+            case var n when n < 10000000:
+                return 7;
+            case var n when n < 100000000:
+                return 8;
+            case var n when n < 1000000000:
+                return 9;
+            default:
+                return 10;
+        }
     }
 }
